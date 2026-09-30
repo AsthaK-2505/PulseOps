@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
 import os
 
@@ -42,16 +42,30 @@ def products():
 
 @app.post("/orders")
 def create_order():
-    data = requests.get(
-        f"{ORDER_SERVICE_URL}/health",
+    data = request.get_json(silent=True) or {}
+
+    response = requests.post(
+        f"{ORDER_SERVICE_URL}/orders",
+        json=data,
         timeout=5
     )
 
-    return {
-        "message": "Order service is reachable",
-        "order_service_status": data.json()
-    }
+    return jsonify(response.json()), response.status_code
+
+
+@app.get("/orders")
+def get_orders():
+    response = requests.get(
+        f"{ORDER_SERVICE_URL}/orders",
+        timeout=5
+    )
+
+    return jsonify(response.json()), response.status_code
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: pulseops/order-service:1.0
+          image: pulseops/order-service:3.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5002
@@ -24,13 +24,32 @@ spec:
             - name: POSTGRES_HOST
               value: postgres
 
+            - name: POSTGRES_PORT
+              value: "5432"
+
+            - name: POSTGRES_DB
+              value: pulseops
+
+            - name: POSTGRES_USER
+              value: pulseops
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
             - name: RABBITMQ_HOST
               value: rabbitmq
+
+            - name: RABBITMQ_PORT
+              value: "5672"
 
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
+
             limits:
               cpu: "500m"
               memory: "256Mi"

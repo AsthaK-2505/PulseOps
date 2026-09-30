@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: pulseops/notification-service:1.0
+          image: pulseops/notification-service:2.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
@@ -24,10 +24,14 @@ spec:
             - name: RABBITMQ_HOST
               value: rabbitmq
 
+            - name: RABBITMQ_PORT
+              value: "5672"
+
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
+
             limits:
               cpu: "500m"
               memory: "256Mi"
