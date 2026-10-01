@@ -25,3 +25,18 @@ env/
 # kubernetes secrets
 k8s/postgres-secret.yaml
 
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# Secrets
+k8s/postgres-secret.yaml
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
