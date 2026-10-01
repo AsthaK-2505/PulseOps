@@ -1,4 +1,4 @@
-name: PulseOps CI
+name: PulseOps CI - Docker Build and Trivy Scan
 
 on:
   push:
