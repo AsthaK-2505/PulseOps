@@ -18,7 +18,7 @@ ORDER_SERVICE_URL = os.getenv(
 @app.get("/")
 def home():
     return {
-        "message": "Welcome to PulseOps API Gateway"
+        "message": "Welcome to PulseOps API Gateway v2.1"
     }
 
 
