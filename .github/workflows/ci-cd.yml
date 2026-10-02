@@ -1,0 +1,182 @@
+name: PulseOps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ci-cd:
+    name: Build, Scan and Deploy
+    runs-on: [self-hosted, linux, x64]
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify local environment
+        run: |
+          echo "===== DOCKER ====="
+          docker version
+
+          echo
+          echo "===== MINIKUBE ====="
+          minikube status
+
+          echo
+          echo "===== KUBERNETES ====="
+          kubectl get nodes
+
+          echo
+          echo "===== TRIVY ====="
+          trivy --version
+
+      - name: Configure Docker for Minikube
+        run: |
+          eval "$(minikube docker-env)"
+          docker info | grep "Name:"
+
+      - name: Build API Gateway image
+        run: |
+          eval "$(minikube docker-env)"
+          docker build \
+            -t pulseops/api-gateway:${IMAGE_TAG} \
+            services/api-gateway
+
+      - name: Build Product Service image
+        run: |
+          eval "$(minikube docker-env)"
+          docker build \
+            -t pulseops/product-service:${IMAGE_TAG} \
+            services/product-service
+
+      - name: Build Order Service image
+        run: |
+          eval "$(minikube docker-env)"
+          docker build \
+            -t pulseops/order-service:${IMAGE_TAG} \
+            services/order-service
+
+      - name: Build Notification Service image
+        run: |
+          eval "$(minikube docker-env)"
+          docker build \
+            -t pulseops/notification-service:${IMAGE_TAG} \
+            services/notification-service
+
+      - name: Scan API Gateway with Trivy
+        run: |
+          eval "$(minikube docker-env)"
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --no-progress \
+            pulseops/api-gateway:${IMAGE_TAG}
+
+      - name: Scan Product Service with Trivy
+        run: |
+          eval "$(minikube docker-env)"
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --no-progress \
+            pulseops/product-service:${IMAGE_TAG}
+
+      - name: Scan Order Service with Trivy
+        run: |
+          eval "$(minikube docker-env)"
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --no-progress \
+            pulseops/order-service:${IMAGE_TAG}
+
+      - name: Scan Notification Service with Trivy
+        run: |
+          eval "$(minikube docker-env)"
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --no-progress \
+            pulseops/notification-service:${IMAGE_TAG}
+
+      - name: Deploy images to Kubernetes
+        run: |
+          kubectl -n pulseops set image deployment/api-gateway \
+            api-gateway=pulseops/api-gateway:${IMAGE_TAG}
+
+          kubectl -n pulseops set image deployment/product-service \
+            product-service=pulseops/product-service:${IMAGE_TAG}
+
+          kubectl -n pulseops set image deployment/order-service \
+            order-service=pulseops/order-service:${IMAGE_TAG}
+
+          kubectl -n pulseops set image deployment/notification-service \
+            notification-service=pulseops/notification-service:${IMAGE_TAG}
+
+      - name: Wait for Kubernetes rollouts
+        run: |
+          kubectl rollout status deployment/api-gateway \
+            -n pulseops --timeout=180s
+
+          kubectl rollout status deployment/product-service \
+            -n pulseops --timeout=180s
+
+          kubectl rollout status deployment/order-service \
+            -n pulseops --timeout=180s
+
+          kubectl rollout status deployment/notification-service \
+            -n pulseops --timeout=180s
+
+      - name: Verify Kubernetes workloads
+        run: |
+          echo "===== PODS ====="
+          kubectl get pods -n pulseops
+
+          echo
+          echo "===== DEPLOYMENTS ====="
+          kubectl get deployments -n pulseops
+
+      - name: Verify application health
+        run: |
+          GATEWAY_URL="http://$(minikube ip):31486"
+
+          echo "Gateway: ${GATEWAY_URL}"
+
+          echo
+          echo "===== HEALTH ====="
+          curl --fail --silent --show-error \
+            "${GATEWAY_URL}/health"
+
+          echo
+          echo
+          echo "===== PRODUCTS ====="
+          curl --fail --silent --show-error \
+            "${GATEWAY_URL}/products"
+
+          echo
+
+      - name: Verify HPA
+        run: |
+          echo "===== HPA ====="
+          kubectl get hpa -n pulseops
+
+      - name: Deployment summary
+        run: |
+          echo
+          echo "======================================"
+          echo "       PulseOps CI/CD SUCCESS"
+          echo "======================================"
+          echo "Commit: ${IMAGE_TAG}"
+          echo
+
+          kubectl get pods -n pulseops
