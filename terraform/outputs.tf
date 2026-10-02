@@ -9,20 +9,44 @@ output "environment" {
 }
 
 output "aws_region" {
-  description = "Target AWS region"
+  description = "AWS region"
   value       = var.aws_region
 }
 
-output "architecture" {
-  description = "Target AWS architecture"
+output "vpc_cidr" {
+  description = "PulseOps VPC CIDR"
+  value       = aws_vpc.pulseops.cidr_block
+}
+
+output "ecr_repositories" {
+  description = "ECR repositories for PulseOps services"
   value = {
-    networking         = "Amazon VPC"
-    load_balancer      = "Application Load Balancer"
-    compute            = "Amazon EKS"
-    container_registry = "Amazon ECR"
-    database           = "Amazon RDS PostgreSQL"
-    dns                = "Amazon Route 53"
-    monitoring         = "Amazon CloudWatch"
-    identity           = "AWS IAM"
+    for service, repository in aws_ecr_repository.services :
+    service => repository.repository_url
   }
+}
+
+output "eks_cluster_name" {
+  description = "EKS cluster name"
+  value       = aws_eks_cluster.pulseops.name
+}
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = aws_db_instance.postgres.address
+}
+
+output "alb_dns_name" {
+  description = "Application Load Balancer DNS name"
+  value       = aws_lb.pulseops.dns_name
+}
+
+output "cloudwatch_log_group" {
+  description = "CloudWatch log group"
+  value       = aws_cloudwatch_log_group.pulseops.name
+}
+
+output "route53_zone" {
+  description = "Route 53 hosted zone"
+  value       = aws_route53_zone.pulseops.name
 }
